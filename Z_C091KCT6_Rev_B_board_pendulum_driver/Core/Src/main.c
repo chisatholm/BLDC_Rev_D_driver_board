@@ -292,7 +292,7 @@ int main(void)
   pos_going = (pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0] - pendulum_A.pos_array[(9+pendulum_A.pos_array[10][0])%10][0] > 0); // pendulum is moving in positive direction
   outbound  = ((positive && pos_going) || (!positive && !pos_going)); // pendulum is moving away from central rest position
 
-
+// minor change to see how new branch behaves
 
 
  	 if (outbound)	{torqueB = 90;
@@ -668,8 +668,8 @@ int measure_offset(struct pendulum_t * p_pendulum) // remove power from motor, t
 	   offset_results[i] = pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0];
   }
   int j = 0;
-  int k[2];
-  long min_pos = 1000000;
+  //int k[2];
+  //long min_pos = 1000000;
   for (int i = 0; i < 48; i++)
   	  {
 		  if ( 		/* successive results are higher && cross zero */	   \
