@@ -46,7 +46,7 @@
 
 #define PERIOD                    (1969.0)
 #define PERIOD_us				  (969000)
-#define DESIRED_AMPLITUDE         (5000)
+#define DESIRED_AMPLITUDE         (700)
 #define PERIODS_BETWEEN_METAPINGS (64)
 #define CTRL_PULSE_MODE           (OUTPUT)    // Board #0 produces the metapings and needs this to be OUTPUT. All other boards need INPUT
 #define attach_the_interrupt      (0)         // Board #0 needs NOT to have the interrupt attached, all other boards need interrupt attached
@@ -222,9 +222,9 @@ int main(void)
 	pendulum_A.amplitude_tolerance 		= 100;    // if +/- tolerance from desired amplitude, treat as correct amplitude
 	pendulum_A.period_tolerance 		= 5;
 	pendulum_A.cumulative_pgzc_error 	= 0;
-	pendulum_A.offset					= 12;
+	pendulum_A.offset					= 37;
 
-	time_track.measurement_interval 	= 50L;  // time between position measurements
+	time_track.measurement_interval 	= 25L;  // time between position measurements
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -273,7 +273,7 @@ int main(void)
   	  {
 	  central_pos_flag = false;
 	  pendulum_A.neutral_position = measure_neutral(); // execute once only to determine neutral position
-  	  pendulum_A.offset = measure_offset(&pendulum_A);
+  	  // pendulum_A.offset = measure_offset(&pendulum_A);
   	  }
 
   update_time(&time_track, HAL_GetTick());
@@ -283,10 +283,11 @@ int main(void)
 	  AS5048A_update_pos_array(); // puts a new magnetic reading into position pos_array[10][0] of pos_array[][]
 	  motor_update_flag = true;
 	  if_flag = !if_flag;
-	  //HAL_Delay(1000);
 	}
 //
-  update_max_min(&pendulum_A);
+  update_max_min(&pendulum_A); // updates provisional max & min
+  long dummy_2 = pgzc(&pendulum_A);
+  long dummy_3 = ngzc(&pendulum_A); // need to call both pgzc & ngzc to reset flags
 
   positive  = (pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0] > 0); // pendulum is in positive territory
   pos_going = (pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0] - pendulum_A.pos_array[(9+pendulum_A.pos_array[10][0])%10][0] > 0); // pendulum is moving in positive direction
@@ -295,12 +296,12 @@ int main(void)
 // minor change to see how new branch behaves
 
 
- 	 if (outbound)	{torqueB = 90;
+ 	 if (outbound)	{torqueB = 75;
  	 		  if(pos_going){
  	 			   directnB = 12;}
  	 		  else directnB = 36;}
 
- 	 else 			{torqueB = 90;
+ 	 else 			{torqueB = 75;
  	 		  if(pos_going){
  	 			   directnB = 12;}
  	 		  else directnB = 36;

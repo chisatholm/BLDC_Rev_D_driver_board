@@ -106,7 +106,7 @@ void update_time(struct time_tracker_t * time_track_var, long time)
 }
 
 
-long pgzc(struct pendulum_t * p_pendulum)
+long pgzc(struct pendulum_t * p_pendulum) // returns the est. time at which the pendulum crosses zero going +ve, updates pendulum struct
 {
   if (p_pendulum->neutral_position < 0){ return -1;} // neutral position has not been measured (so all readings are meaningless)
   long positionB = p_pendulum->pos_array[p_pendulum->pos_array[10][0]][0]; // newest position taken into account
@@ -115,12 +115,13 @@ long pgzc(struct pendulum_t * p_pendulum)
     {
       p_pendulum->pos_reading_min = p_pendulum->pos_reading_provisional_min;
       p_pendulum->pos_reading_provisional_min = 20123;
+      //p_pendulum->pos_reading_max = p_pendulum->pos_reading_provisional_max;
+      //p_pendulum->pos_reading_provisional_max = 0;
       p_pendulum->amplitude = p_pendulum->pos_reading_max - p_pendulum->pos_reading_min;
       float numerator   = positionB * p_pendulum->pos_array[(p_pendulum->pos_array[10][0]+9)%10][1] - positionA * p_pendulum->pos_array[p_pendulum->pos_array[10][0]][1];
       float denominator = positionB - positionA;
       long crossing_time = (long)(numerator / denominator);
       p_pendulum->ngzc_flag = true; p_pendulum->pgzc_flag = false; //
-      // p_pendulum->pgzc_time = crossing_time;
       p_pendulum->period    = (crossing_time - p_pendulum->pgzc_time);
       p_pendulum->pgzc_time =  crossing_time;
       return crossing_time;
@@ -137,13 +138,14 @@ long ngzc(struct pendulum_t * p_pendulum) // TODO does not cope with neutral pos
     {
       p_pendulum->pos_reading_max = p_pendulum->pos_reading_provisional_max;
       p_pendulum->pos_reading_provisional_max = 0;
+      //p_pendulum->pos_reading_min = p_pendulum->pos_reading_provisional_min;
+      //p_pendulum->pos_reading_provisional_min = 20123;
       p_pendulum->amplitude = p_pendulum->pos_reading_max - p_pendulum->pos_reading_min;
       float numerator   = positionB * p_pendulum->pos_array[(p_pendulum->pos_array[10][0]+9)%10][1] - positionA * p_pendulum->pos_array[p_pendulum->pos_array[10][0]][1];
       float denominator = positionB - positionA;
       long crossing_time = (long)(numerator / denominator); // linear interpolation of crossing time
       p_pendulum->ngzc_flag = false; p_pendulum->pgzc_flag = true; //
       p_pendulum->ngzc_time = crossing_time;
-      //p_pendulum->period = 2 * (p_pendulum->ngzc_time - p_pendulum->pgzc_time);
       return crossing_time;
     }
   else {return -2;} // benign, but no zero crossing
