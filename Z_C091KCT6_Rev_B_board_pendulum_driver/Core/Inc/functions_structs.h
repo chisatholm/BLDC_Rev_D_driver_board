@@ -22,6 +22,9 @@ struct time_tracker_t // excludes all magnetic measurement times, these are held
   unsigned long long ngzc_time_current;
   unsigned long long ngzc_time_previous;
 
+  unsigned long long pgzc_time_last_desired;
+  unsigned long long pgzc_time_next_desired;
+
   long measurement_interval; // milliseconds between position measurements
   long motor_update_interval; // milliseconds between motor instructions TODO is this variable AND measurement_interval needed?
 
@@ -54,9 +57,9 @@ struct pendulum_t
     long pos_array[11][2];				// circular array to hold position and time data, see below this struct definition for further detail
     bool pgzc_flag;
     bool ngzc_flag;
-    long pgzc_time;						// Positive Going Zero Crossing
-    long ngzc_time;						// Negative G     Z    C
-
+    unsigned long long pgzc_time;						// Positive Going Zero Crossing
+    unsigned long long ngzc_time;						// Negative G     Z    C
+    bool early;							// if true, pendulum arrived at last pgzc early
 
   };
 
@@ -88,7 +91,7 @@ struct pendulum_t
   void apply_specified_current_vector(struct pendulum_t * p_pendulum, int a);
   long desired_pgzc(long time, struct pendulum_t * p_pendulum, struct time_tracker_t * p_time_track_var); // returns the time at which the most recent pgzc should have been seen
   long apply_neutral_offset(long reading, struct pendulum_t * p_pendulum);
-
+  void determine_late_early(struct pendulum_t * p_pendulum, struct time_tracker_t * p_time_track_var);
 
 
 

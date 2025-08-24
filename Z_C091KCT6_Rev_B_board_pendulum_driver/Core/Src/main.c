@@ -44,8 +44,8 @@
 
 #if (PENDULUM_NO == 0)
 
-#define PERIOD                    (1969.0)
-#define PERIOD_us				  (969000)
+#define DESIRED_PERIOD            (1969.0)
+#define PERIOD_us				  (DESIRED_PERIOD * 1000)
 #define DESIRED_AMPLITUDE         (700)
 #define PERIODS_BETWEEN_METAPINGS (64)
 #define CTRL_PULSE_MODE           (OUTPUT)    // Board #0 produces the metapings and needs this to be OUTPUT. All other boards need INPUT
@@ -196,6 +196,8 @@ volatile bool positive  = false;
 volatile bool pos_going = false;
 volatile bool outbound = false;
 volatile uint16_t electrical_pos = 0;
+volatile bool early = false; // if true, pendulum is arriving early at zero crossing
+volatile bool longswing = false; // if true, pendulum is swinging too far
 
 /* USER CODE END 0 */
 
@@ -211,13 +213,13 @@ int main(void)
 
 	pendulum_A.pendulum_number 			= PENDULUM_NO;
 	pendulum_A.periods_in_meta_period 	= PERIODS_BETWEEN_METAPINGS;
-	pendulum_A.desired_period 			= PERIOD;      //
+	pendulum_A.desired_period 			= DESIRED_PERIOD;      //
 	pendulum_A.desired_period_us		= PERIOD_us;
 	pendulum_A.desired_amplitude 		= DESIRED_AMPLITUDE;   //
 	pendulum_A.pgzc_flag 				= true;            // one of the 2 flags needs to be true otherwise no zero crossings reported
 	pendulum_A.ngzc_flag 				= true;            // probably the other flag could also be true, TLDT
 	pendulum_A.period 					= 1234L;              // period in milliseconds
-	pendulum_A.meta_period 				= (PERIODS_BETWEEN_METAPINGS * PERIOD);
+	pendulum_A.meta_period 				= (PERIODS_BETWEEN_METAPINGS * DESIRED_PERIOD);
 	pendulum_A.time_tolerance 			= 20;          // if +/- tolerance from desired pgzc time, treat as correct time
 	pendulum_A.amplitude_tolerance 		= 100;    // if +/- tolerance from desired amplitude, treat as correct amplitude
 	pendulum_A.period_tolerance 		= 5;
@@ -277,6 +279,7 @@ int main(void)
   	  }
 
   update_time(&time_track, HAL_GetTick());
+  time_track.pgzc_time_last_desired = desired_pgzc(HAL_GetTick(), &pendulum_A, &time_track );
 
   if (measure_due(&time_track, pendulum_A.pos_array[(pendulum_A.pos_array[10][0])][1]))
 	{
@@ -286,59 +289,53 @@ int main(void)
 	}
 //
   update_max_min(&pendulum_A); // updates provisional max & min
-  long dummy_2 = pgzc(&pendulum_A);
+  long dummy_2 = pgzc(&pendulum_A); // TODO can you make these functions 'void fn()' to avoid Wunused variable warning
   long dummy_3 = ngzc(&pendulum_A); // need to call both pgzc & ngzc to reset flags
+  determine_late_early(&pendulum_A, &time_track);
+
 
   positive  = (pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0] > 0); // pendulum is in positive territory
   pos_going = (pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0] - pendulum_A.pos_array[(9+pendulum_A.pos_array[10][0])%10][0] > 0); // pendulum is moving in positive direction
   outbound  = ((positive && pos_going) || (!positive && !pos_going)); // pendulum is moving away from central rest position
 
-// minor change to see how new branch behaves
 
 
- 	 if (outbound)	{torqueB = 75;
- 	 		  if(pos_going){
- 	 			   directnB = 12;}
- 	 		  else directnB = 36;}
 
- 	 else 			{torqueB = 75;
- 	 		  if(pos_going){
- 	 			   directnB = 12;}
- 	 		  else directnB = 36;
- 	 		  }
+ if (outbound)	{torqueB = 75;
+		  if(pos_going){
+			   directnB = 12;}
+		  else directnB = 36;}
 
+ else 			{torqueB = 75;
+		  if(pos_going){
+			   directnB = 12;}
+		  else directnB = 36;
+		  }
 
-  electrical_pos = (elec_pos(pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0]) % 48);
-  //if (electrical_pos >48){torqueB = 0;}
+ if (pendulum_A.amplitude < 1300){torqueB = 150;}
 
-  //currentStepA = electrical_pos + directnB + pendulum_A.offset - 9; // 43 for #0 & #1, 15 for #2, 19 for #3
-  currentStepA = electrical_pos + directnB + pendulum_A.offset; // 43 for #0 & #1, 15 for #2, 19 for #3
-  currentStepB = currentStepA + B_offset;
-  currentStepC = currentStepA + C_offset;
-  if (count % 50000 == 0){//offset = (offset + 1) % 48;
-  }
-  count ++;
+ electrical_pos = (elec_pos(pendulum_A.pos_array[pendulum_A.pos_array[10][0]][0]) % 48);
 
-  currentStepA %= 48;
-  currentStepB %= 48;
-  currentStepC %= 48;
+ currentStepA = electrical_pos + directnB + pendulum_A.offset;
+ currentStepB = currentStepA + B_offset;
+ currentStepC = currentStepA + C_offset;
+ if (count % 50000 == 0)
+ 	 {//offset = (offset + 1) % 48;
+ 	 }
+
+ count ++;
+
+ currentStepA %= 48;
+ currentStepB %= 48;
+ currentStepC %= 48;
 
   if (motor_update_flag == true)
   {
 	  motor_update_flag = false;
-	  //torqueB = 0;
 	  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwmSin[currentStepA]*torqueB/100.0);
 	  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, pwmSin[currentStepB]*torqueB/100.0);
 	  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, pwmSin[currentStepC]*torqueB/100.0);
-
-
-	  //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, pwmSin[offset]*torqueB/100.0);
-	  //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, pwmSin[(offset + B_offset)%48]*torqueB/100.0);
-	  //__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, pwmSin[(offset + C_offset)%48]*torqueB/100.0);
   }
-
-  //HAL_Delay(2500); //  see if this can be eliminated. Its function is to stop nasty noises in the motor
-
 
     /* USER CODE END WHILE */
 

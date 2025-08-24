@@ -153,11 +153,41 @@ long ngzc(struct pendulum_t * p_pendulum) // TODO does not cope with neutral pos
 
 long desired_pgzc(long time, struct pendulum_t * p_pendulum, struct time_tracker_t * p_time_track_var ) // returns time of most recent desired pgzc
 {
+	// TODO refine this to use microseconds
 	return (p_time_track_var->meta_period_start_time +
 			((time - p_time_track_var->meta_period_start_time) / p_pendulum->desired_period) * p_pendulum->desired_period);
 }
 
+void determine_late_early(struct pendulum_t * p_pendulum, struct time_tracker_t * p_time_track_var)
+{
+	unsigned long long A = p_pendulum->pgzc_time;
+	unsigned long long D = p_time_track_var->pgzc_time_last_desired;
+	long long AlessD = A - D;
 
+	if ((AlessD) > 0)
+	{
+		if ( 2 * abs(AlessD) > (p_pendulum->desired_period ) )
+		{
+			p_pendulum->early = true;
+		}
+		else
+		{
+			p_pendulum->early = false;
+		}
+	}
+
+	if ((AlessD) <= 0)
+	{
+		if ( 2 * abs(AlessD) > (p_pendulum->desired_period ) )
+		{
+			p_pendulum->early = false;
+		}
+		else
+		{
+			p_pendulum->early = true;
+		}
+	}
+}
 
 
 
