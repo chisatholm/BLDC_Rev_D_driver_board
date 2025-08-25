@@ -169,9 +169,22 @@ long desired_pgzc(long time, struct pendulum_t *p_pendulum,
 		struct time_tracker_t *p_time_track_var) // returns time of most recent desired pgzc
 {
 	// TODO refine this to use microseconds
+
+	long long A = p_time_track_var->meta_period_start_time; // meta period start time, ms
+	long long B = (time * 1000 - 1000 * p_time_track_var->meta_period_start_time); // time since start of meta period, us (MICRO seconds)
+	long long C = p_pendulum->desired_period_us; // desired period of pendulum, us (MICRO seconds)
+	long long D = 0;
+
+	/*
 	return (p_time_track_var->meta_period_start_time
-			+ ((time - p_time_track_var->meta_period_start_time)
-					/ p_pendulum->desired_period) * p_pendulum->desired_period);
+			+ ((time * 1000 - 1000 * p_time_track_var->meta_period_start_time)
+					/ p_pendulum->desired_period_us) //* p_pendulum->desired_period_us/1000));*/
+	D = A + (B / C) * C / 1000; //
+	return D;
+	//  A 					: metaperiod start time, ms
+	// (B / C) 				: no of complete periods since start of meta period
+	// (B / C) * C 			: elapsed time from start of meta period to desired PGZC, us (MICRO seconds)
+	// (B / C) * C / 1000 	: as above, ms
 }
 
 void determine_late_early(struct pendulum_t *p_pendulum,

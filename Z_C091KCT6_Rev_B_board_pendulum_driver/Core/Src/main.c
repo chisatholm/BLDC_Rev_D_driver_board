@@ -35,7 +35,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PENDULUM_NO               0
+#define PENDULUM_NO               1
 //#define all_tests                 false // if false, no tests occur ('production'), if true, falls into while(all_tests) loop (testing)
 //#define neutral_mag               true  // if ((all_tests) && neutral_mag) then print out the reading from the MA780 magnetic sensor
 //#define current_sink              false // if ((all_tests) && current_sink) then cycle through all possible current levels, including reversing the current
@@ -47,7 +47,7 @@
 #define DESIRED_PERIOD            (1960.0)
 #define PERIOD_us				  (DESIRED_PERIOD * 1000)
 #define DESIRED_AMPLITUDE         (1000)
-#define PERIODS_BETWEEN_METAPINGS (4)
+#define PERIODS_BETWEEN_METAPINGS (64)
 #define CTRL_PULSE_MODE           (OUTPUT)    // Board #0 produces the metapings and needs this to be OUTPUT. All other boards need INPUT
 #define attach_the_interrupt      (0)         // Board #0 needs NOT to have the interrupt attached, all other boards need interrupt attached
 #define OFFSET					  (0)		// 43 for #0 & #1, 15 for #2, 19 for #3
@@ -55,9 +55,9 @@
 
 #if (PENDULUM_NO == 1)
 
-#define PERIOD                    (954.0)
-#define PERIOD_us				  (954092)
-#define DESIRED_AMPLITUDE         (5000)
+#define DESIRED_PERIOD            (1960.0)
+#define PERIOD_us				  (DESIRED_PERIOD * 1000)
+#define DESIRED_AMPLITUDE         (1000)
 #define PERIODS_BETWEEN_METAPINGS (65)
 #define CTRL_PULSE_MODE           (INPUT)    // Board #0 produces the metapings and needs this to be OUTPUT. All other boards need INPUT
 #define attach_the_interrupt      (1)         // Board #0 needs NOT to have the interrupt attached, all other boards need interrupt attached
@@ -293,11 +293,11 @@ int main(void) {
 		float multiplier = 1.8; // 2:- strongest period correction, 1:- weakest period correction
 		// see extensive comment at line ~900
 
-		if (outbound && !pendulum_A.early) { // driving here tends to make pendulum later, antagonistic to
+		if (outbound && !pendulum_A.early) { // driving outbound & late pendulum tends to make pendulum later, antagonistic to correcting a late pendulum
 			multiplier = 2 - multiplier;
 		}
 
-		if (!outbound && pendulum_A.early) {
+		if (!outbound && pendulum_A.early) { // driving inbound & early pendulum tends to make pendulum earlier, antagonistic to correcting an early pendulum
 			multiplier = 2 - multiplier;
 		}
 
@@ -745,11 +745,6 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin) {
 	UNUSED(GPIO_Pin);
 	time_track.meta_period_start_time = HAL_GetTick();
 	ping_count++;
-
-	/* NOTE: This function should not be modified, when the callback is needed,
-	 the HAL_GPIO_EXTI_Falling_Callback could be implemented in the user file
-	 */
-	// printf("Interrupt received\n\r");
 }
 
 void ping_due(struct pendulum_t *p_pendulum,
