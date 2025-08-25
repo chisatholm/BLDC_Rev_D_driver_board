@@ -57,6 +57,7 @@ struct pendulum_t {
 	bool ngzc_flag;
 	unsigned long long pgzc_time;				// Positive Going Zero Crossing
 	unsigned long long ngzc_time;						// Negative G     Z    C
+	unsigned long pgzc_count;
 	bool early;					// if true, pendulum arrived at last pgzc early
 
 };

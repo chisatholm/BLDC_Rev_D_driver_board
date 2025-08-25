@@ -125,6 +125,7 @@ long pgzc(struct pendulum_t *p_pendulum) // returns the est. time at which the p
 		p_pendulum->pgzc_flag = false; //
 		p_pendulum->period = (crossing_time - p_pendulum->pgzc_time);
 		p_pendulum->pgzc_time = crossing_time;
+		p_pendulum->pgzc_count++;
 		return crossing_time;
 	} else {
 		return -2;

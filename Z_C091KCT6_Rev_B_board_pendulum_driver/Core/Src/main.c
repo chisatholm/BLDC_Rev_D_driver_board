@@ -44,10 +44,10 @@
 
 #if (PENDULUM_NO == 0)
 
-#define DESIRED_PERIOD            (1944.0)
+#define DESIRED_PERIOD            (1960.0)
 #define PERIOD_us				  (DESIRED_PERIOD * 1000)
-#define DESIRED_AMPLITUDE         (1300)
-#define PERIODS_BETWEEN_METAPINGS (64)
+#define DESIRED_AMPLITUDE         (1000)
+#define PERIODS_BETWEEN_METAPINGS (4)
 #define CTRL_PULSE_MODE           (OUTPUT)    // Board #0 produces the metapings and needs this to be OUTPUT. All other boards need INPUT
 #define attach_the_interrupt      (0)         // Board #0 needs NOT to have the interrupt attached, all other boards need interrupt attached
 #define OFFSET					  (0)		// 43 for #0 & #1, 15 for #2, 19 for #3
@@ -157,9 +157,10 @@ long a = 39;
 // long cumulative_lateness = 0;
 float power = 38;
 bool motor_update_flag = false;
-long ping_count_current = 0;// counter to keep track of the number of metapings
+long ping_count_current = 0; // counter to keep track of the number of metapings
 long ping_count_previous = 0;	//
 long ping_count = 0;
+
 
 long offset_results[48];
 
@@ -268,6 +269,7 @@ int main(void) {
 		update_time(&time_track, HAL_GetTick());
 		time_track.pgzc_time_last_desired = desired_pgzc(HAL_GetTick(),
 				&pendulum_A, &time_track);
+		ping_due(&pendulum_A, &time_track);
 
 		if (measure_due(&time_track,
 				pendulum_A.pos_array[(pendulum_A.pos_array[10][0])][1])) {
@@ -288,7 +290,7 @@ int main(void) {
 								% 10][0] > 0); // pendulum is moving in positive direction
 		outbound = ((positive && pos_going) || (!positive && !pos_going)); // pendulum is moving away from central rest position
 
-		float multiplier = 1.3; // 2:- strongest period correction, 1:- weakest period correction
+		float multiplier = 1.8; // 2:- strongest period correction, 1:- weakest period correction
 		// see extensive comment at line ~900
 
 		if (outbound && !pendulum_A.early) { // driving here tends to make pendulum later, antagonistic to
@@ -306,7 +308,7 @@ int main(void) {
 		}
 
 		if (pendulum_A.amplitude < pendulum_A.desired_amplitude) {
-			torqueB = 100; // 100
+			torqueB = 120; // 100
 		} else
 			torqueB = 85;
 
@@ -766,9 +768,9 @@ void ping_due(struct pendulum_t *p_pendulum,
 
 void duly_ping(void) {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET); // write this as explicit pin to avoid error when pendulum number != 0
-	time_track.meta_period_start_time = HAL_GetTick();
 	HAL_Delay(1);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
+	time_track.meta_period_start_time = HAL_GetTick();
 }
 
 void configure_as_controller(void) {
@@ -823,79 +825,6 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // comment from line ~292
 // use multiplier to moderate the vigour with which the code 'tries' to return
 // to ideal pgzc
@@ -916,7 +845,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 // changing the period to conform to ideal pgzc
 
 // if multiplier == 1, then as much of the drive goes into conforming to pgzc as goes into making it worse
-
-
-
 
